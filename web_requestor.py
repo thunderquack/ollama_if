@@ -1,19 +1,19 @@
 import gradio as gr
 import ollama
-import json
 
 # Получение списка доступных моделей из Ollama
 def get_model_list():
     try:
-        # Получаем строку JSON и преобразуем в словарь
-        models = json.loads(ollama.list())
+        # Получаем список моделей из ollama.list() и извлекаем их имена
+        models_data = ollama.list()
+        models = models_data.get('models', [])
         return [model['name'] for model in models]
     except Exception as e:
         print(f"Ошибка при получении списка моделей: {str(e)}")
         return []
 
 # Функция для отправки промта с выбранной моделью
-def generate_response(prompt, model_name):
+def generate_response(model_name, prompt):
     try:
         # Отправка запроса к выбранной модели Ollama
         response = ollama.chat(
