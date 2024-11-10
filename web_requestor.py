@@ -1,10 +1,12 @@
 import gradio as gr
 import ollama
 
+# Инициализация глобальной истории сообщений
+chat_history = []
+
 # Получение списка доступных моделей из Ollama
 def get_model_list():
     try:
-        # Получаем список моделей из ollama.list() и извлекаем их имена
         models_data = ollama.list()
         models = models_data.get('models', [])
         return [model['name'] for model in models]
@@ -12,33 +14,49 @@ def get_model_list():
         print(f"Ошибка при получении списка моделей: {str(e)}")
         return []
 
-# Функция для отправки промта с выбранной моделью
-def generate_response(model_name, prompt):
+# Функция для отправки промта с учетом истории сообщений
+def generate_response(prompt, model_name):
+    global chat_history  # Используем глобальную историю сообщений
     try:
-        # Отправка запроса к выбранной модели Ollama
+        # Добавляем текущее сообщение пользователя в историю
+        chat_history.append({'role': 'user', 'content': prompt})
+
+        # Отправка запроса с историей сообщений к выбранной модели Ollama
         response = ollama.chat(
             model=model_name,
-            messages=[{'role': 'user', 'content': prompt}]
+            messages=chat_history
         )
-        return response['message']['content']
+
+        # Извлечение ответа и добавление в историю
+        reply = response['message']['content']
+        chat_history.append({'role': 'assistant', 'content': reply})
+
+        return reply
     except Exception as e:
         return f"Произошла ошибка: {str(e)}"
+
+# Функция для очистки истории сообщений
+def clear_history():
+    global chat_history
+    chat_history = []
+    return "История очищена."
 
 # Загрузка списка моделей для выпадающего списка
 model_options = get_model_list()
 
 # Настройка интерфейса Gradio
-iface = gr.Interface(
-    fn=generate_response,
-    inputs=[
-        gr.Dropdown(choices=model_options, label="Выберите модель"),
-        gr.Textbox(lines=2, placeholder="Введите ваш промт здесь...")
-    ],
-    outputs="text",
-    title="Ollama Web Interface",
-    description="Веб-интерфейс для взаимодействия с моделью Ollama через API"
-)
+with gr.Blocks() as demo:
+    model_dropdown = gr.Dropdown(choices=model_options, label="Выберите модель")
+    prompt_input = gr.Textbox(lines=2, placeholder="Введите ваш промт здесь...")
+    output_text = gr.Textbox(label="Ответ модели")
+    
+    # Кнопки для отправки промта и очистки истории
+    submit_button = gr.Button("Отправить")
+    clear_button = gr.Button("Очистить историю")
+
+    submit_button.click(fn=generate_response, inputs=[prompt_input, model_dropdown], outputs=output_text)
+    clear_button.click(fn=clear_history, inputs=[], outputs=output_text)
 
 # Запуск интерфейса
 if __name__ == "__main__":
-    iface.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
