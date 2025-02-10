@@ -2,6 +2,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
+    pull_policy: always
     volumes:
       - ./.ollama:/root/.ollama
     ports:
