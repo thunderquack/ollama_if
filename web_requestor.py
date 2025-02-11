@@ -5,6 +5,7 @@ import ollama
 chat_history = []
 
 # Получение списка доступных моделей из Ollama
+
 def get_model_list():
     try:
         models_data = ollama.list()
@@ -15,6 +16,7 @@ def get_model_list():
         return []
 
 # Функция для отправки промта с учетом истории сообщений
+
 def generate_response(prompt, model_name):
     global chat_history  # Используем глобальную историю сообщений
     try:
@@ -39,12 +41,14 @@ def generate_response(prompt, model_name):
         return f"Произошла ошибка: {str(e)}", ""
 
 # Функция для очистки истории сообщений
+
 def clear_history():
     global chat_history
     chat_history = []
     return "История очищена.", ""
 
 # Форматирование истории чата с использованием HTML
+
 def format_chat_history(history):
     formatted_history = ""
     for message in history:
@@ -61,19 +65,23 @@ model_options = get_model_list()
 with gr.Blocks() as demo:
     with gr.Row():
         with gr.Column(scale=1):
-            model_dropdown = gr.Dropdown(choices=model_options, label="Выберите модель")
-            prompt_input = gr.Textbox(lines=2, placeholder="Введите ваш промт здесь...")
+            model_dropdown = gr.Dropdown(
+                choices=model_options, label="Выберите модель")
+            prompt_input = gr.Textbox(
+                lines=2, placeholder="Введите ваш промт здесь...")
             output_text = gr.Textbox(label="Ответ модели")
-            
+
             # Кнопки для отправки промта и очистки истории
             submit_button = gr.Button("Отправить")
             clear_button = gr.Button("Очистить историю")
-        
+
         with gr.Column(scale=2):
             history_output = gr.HTML(label="История чата")
-        
-        submit_button.click(fn=generate_response, inputs=[prompt_input, model_dropdown], outputs=[output_text, history_output])
-        clear_button.click(fn=clear_history, inputs=[], outputs=[output_text, history_output])
+
+        submit_button.click(fn=generate_response, inputs=[
+                            prompt_input, model_dropdown], outputs=[output_text, history_output])
+        clear_button.click(fn=clear_history, inputs=[], outputs=[
+                           output_text, history_output])
 
 # Запуск интерфейса
 if __name__ == "__main__":
