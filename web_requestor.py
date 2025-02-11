@@ -1,5 +1,7 @@
 import gradio as gr
 import ollama
+from PIL import Image
+import io
 
 # Инициализация глобальной истории сообщений
 chat_history = []
@@ -17,16 +19,27 @@ def get_model_list():
 
 # Функция для отправки промта с учетом истории сообщений
 
-def generate_response(prompt, model_name):
+def generate_response(prompt, model_name, image=None):
     global chat_history  # Используем глобальную историю сообщений
     try:
         # Добавляем текущее сообщение пользователя в историю
         chat_history.append({'role': 'user', 'content': prompt})
 
+        # Обработка изображения, если оно есть
+        if image is not None:
+            image = Image.open(io.BytesIO(image))
+            image = image.convert("RGB")
+            buffered = io.BytesIO()
+            image.save(buffered, format="PNG")
+            image_data = buffered.getvalue()
+        else:
+            image_data = None
+
         # Отправка запроса с историей сообщений к выбранной модели Ollama
         response = ollama.chat(
             model=model_name,
-            messages=chat_history
+            messages=chat_history,
+            image=image_data
         )
 
         # Извлечение ответа и добавление в историю
@@ -69,6 +82,7 @@ with gr.Blocks() as demo:
                 choices=model_options, label="Выберите модель")
             prompt_input = gr.Textbox(
                 lines=2, placeholder="Введите ваш промт здесь...")
+            image_input = gr.Image(label="Загрузите изображение")
             output_text = gr.Textbox(label="Ответ модели")
 
             # Кнопки для отправки промта и очистки истории
@@ -79,7 +93,7 @@ with gr.Blocks() as demo:
             history_output = gr.HTML(label="История чата")
 
         submit_button.click(fn=generate_response, inputs=[
-                            prompt_input, model_dropdown], outputs=[output_text, history_output])
+                    prompt_input, model_dropdown, image_input], outputs=[output_text, history_output])
         clear_button.click(fn=clear_history, inputs=[], outputs=[
                            output_text, history_output])
 
