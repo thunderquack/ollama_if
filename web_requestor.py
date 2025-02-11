@@ -2,6 +2,7 @@ import gradio as gr
 import ollama
 from PIL import Image
 import io
+import base64
 
 # Инициализация глобальной истории сообщений
 chat_history = []
@@ -22,9 +23,6 @@ def get_model_list():
 def generate_response(prompt, model_name, image=None):
     global chat_history  # Используем глобальную историю сообщений
     try:
-        # Добавляем текущее сообщение пользователя в историю
-        chat_history.append({'role': 'user', 'content': prompt})
-
         # Обработка изображения, если оно есть
         if image is not None:
             image = Image.open(io.BytesIO(image))
@@ -32,14 +30,15 @@ def generate_response(prompt, model_name, image=None):
             buffered = io.BytesIO()
             image.save(buffered, format="PNG")
             image_data = buffered.getvalue()
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+            chat_history.append({'role': 'user', 'content': prompt, 'images': [image_base64]})
         else:
-            image_data = None
+            chat_history.append({'role': 'user', 'content': prompt})
 
         # Отправка запроса с историей сообщений к выбранной модели Ollama
         response = ollama.chat(
             model=model_name,
-            messages=chat_history,
-            image=image_data
+            messages=chat_history
         )
 
         # Извлечение ответа и добавление в историю
@@ -67,6 +66,9 @@ def format_chat_history(history):
     for message in history:
         if message['role'] == 'user':
             formatted_history += f"<div style='color:blue;'><b>Пользователь:</b> {message['content']}</div><br>"
+            if 'images' in message:
+                for img in message['images']:
+                    formatted_history += f"<img src='data:image/png;base64,{img}'><br>"
         else:
             formatted_history += f"<div style='color:green;'><b>Модель:</b> {message['content']}</div><br>"
     return formatted_history
